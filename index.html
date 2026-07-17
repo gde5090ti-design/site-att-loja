@@ -277,7 +277,14 @@
           </div>
         </div>
 
-        <label class="mono">URL da imagem</label>
+        <label class="mono">Imagem do produto</label>
+        <input type="file" id="p-image-file" accept="image/png, image/jpeg, image/webp" />
+        <p class="mono" id="upload-status" style="margin-top:-10px; margin-bottom:12px;">PNG, JPG ou WEBP — até 5MB</p>
+        <div id="image-preview-wrap" style="display:none; margin-bottom:16px;">
+          <img id="image-preview" style="width:100px; height:120px; object-fit:cover; border-radius:8px; background:var(--surface);" />
+        </div>
+
+        <label class="mono">Ou cole o link de uma imagem já hospedada</label>
         <input type="url" id="p-image" placeholder="https://...supabase.co/storage/v1/object/public/product-images/foto.jpg" />
 
         <div class="checkbox-row">
@@ -368,6 +375,54 @@
     document.getElementById("p-slug").value = slugify(e.target.value);
   });
 
+  // --- Upload de imagem (PNG/JPG/WEBP) para o Supabase Storage ---
+  const uploadStatus = document.getElementById("upload-status");
+  const imagePreviewWrap = document.getElementById("image-preview-wrap");
+  const imagePreview = document.getElementById("image-preview");
+  const imageUrlInput = document.getElementById("p-image");
+
+  document.getElementById("p-image-file").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/png", "image/jpeg", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      uploadStatus.textContent = "Formato não aceito. Use PNG, JPG ou WEBP.";
+      e.target.value = "";
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      uploadStatus.textContent = "Arquivo maior que 5MB. Escolha uma imagem menor.";
+      e.target.value = "";
+      return;
+    }
+
+    uploadStatus.textContent = "Enviando imagem...";
+
+    const extension = file.name.split(".").pop().toLowerCase();
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
+
+    const { error: uploadError } = await supabaseClient
+      .storage
+      .from("product-images")
+      .upload(fileName, file, { cacheControl: "3600", upsert: false });
+
+    if (uploadError) {
+      uploadStatus.textContent = "Erro ao enviar imagem: " + uploadError.message;
+      return;
+    }
+
+    const { data: publicUrlData } = supabaseClient
+      .storage
+      .from("product-images")
+      .getPublicUrl(fileName);
+
+    imageUrlInput.value = publicUrlData.publicUrl;
+    imagePreview.src = publicUrlData.publicUrl;
+    imagePreviewWrap.style.display = "block";
+    uploadStatus.textContent = "Imagem enviada — link preenchido abaixo.";
+  });
+
   // --- Sessão / login ---
   async function checkSession() {
     const { data: { session } } = await supabaseClient.auth.getSession();
@@ -449,6 +504,8 @@
     formSuccess.style.display = "block";
     setTimeout(() => { formSuccess.style.display = "none"; }, 4000);
     document.getElementById("product-form").reset();
+    imagePreviewWrap.style.display = "none";
+    uploadStatus.textContent = "PNG, JPG ou WEBP — até 5MB";
     loadProducts();
   });
 
