@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Painel — Núcleo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #1A1A18;
+    --paper: #FAFAF8;
+    --surface: #F2F1ED;
+    --signal: #B54708;
+    --signal-dark: #8A3606;
+    --signal-soft: #FCEEE3;
+    --border: #E4E2DC;
+    --muted: #8A8779;
+    --success: #166534;
+    --danger: #B42318;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Inter", sans-serif;
+  }
+
+  h1, h2, h3 { font-family: "Fraunces", serif; margin: 0; }
+
+  .mono {
+    font-family: "IBM Plex Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  header h1 { font-size: 22px; font-weight: 600; }
+
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* --- Tela de login --- */
+  #login-screen {
+    max-width: 380px;
+    margin: 80px auto;
+    background: white;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 1px 2px rgba(26,26,24,0.04), 0 10px 30px -14px rgba(26,26,24,0.18);
+  }
+
+  #login-screen h2 { font-size: 24px; margin-bottom: 8px; }
+  #login-screen p.mono { margin-bottom: 24px; }
+
+  label {
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  input, textarea, select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--paper);
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    outline: 2px solid var(--signal);
+    outline-offset: 1px;
+  }
+
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    font-family: "IBM Plex Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 12px;
+    padding: 14px 20px;
+    transition: 0.15s ease;
+  }
+
+  .btn-primary {
+    background: var(--ink);
+    color: var(--paper);
+    width: 100%;
+  }
+  .btn-primary:hover { background: var(--signal); }
+  .btn-primary:disabled { background: var(--muted); cursor: not-allowed; }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--ink);
+  }
+  .btn-secondary:hover { border-color: var(--ink); }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    padding: 8px 12px;
+    font-size: 11px;
+  }
+  .btn-danger:hover { background: #FEF3F2; }
+
+  #error-box, #form-error, #form-success {
+    display: none;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    margin-bottom: 16px;
+  }
+  #error-box, #form-error { background: var(--signal-soft); color: var(--signal-dark); }
+  #form-success { background: #DCFCE7; color: var(--success); }
+
+  /* --- Painel --- */
+  #admin-screen { display: none; }
+
+  .card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 1px 2px rgba(26,26,24,0.04), 0 10px 30px -14px rgba(26,26,24,0.16);
+    margin-bottom: 32px;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 16px;
+  }
+
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .checkbox-row input { width: auto; margin: 0; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  th {
+    text-align: left;
+    font-family: "IBM Plex Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 10px;
+    color: var(--muted);
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  .thumb {
+    width: 40px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 4px;
+    background: var(--surface);
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+  }
+  .badge-out { background: var(--surface); color: var(--muted); }
+  .badge-ok { background: #DCFCE7; color: var(--success); }
+
+  @media (max-width: 640px) {
+    .grid-2 { grid-template-columns: 1fr; }
+    table, thead, tbody, th, td, tr { display: block; }
+    thead { display: none; }
+    td { border: none; padding: 4px 0; }
+    tr { padding-bottom: 12px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Núcleo <span class="mono" style="font-size:11px;">painel</span></h1>
+  <button id="btn-logout" class="btn-secondary" style="display:none;">Sair</button>
+</header>
+
+<main>
+
+  <!-- TELA DE LOGIN -->
+  <div id="login-screen">
+    <h2>Entrar</h2>
+    <p class="mono">Acesso restrito ao administrador da loja</p>
+    <div id="error-box"></div>
+    <form id="login-form">
+      <label class="mono">E-mail</label>
+      <input type="email" id="login-email" required placeholder="voce@email.com" />
+      <label class="mono">Senha</label>
+      <input type="password" id="login-password" required placeholder="••••••••" />
+      <button type="submit" class="btn-primary" id="btn-login">Entrar</button>
+    </form>
+  </div>
+
+  <!-- PAINEL ADMIN -->
+  <div id="admin-screen">
+
+    <div class="card">
+      <h2 style="font-size:20px; margin-bottom:4px;">Adicionar produto</h2>
+      <p class="mono" style="margin-bottom:20px;">Preencha e clique em salvar. O produto aparece na loja na hora.</p>
+
+      <div id="form-error"></div>
+      <div id="form-success">Produto salvo com sucesso.</div>
+
+      <form id="product-form">
+        <label class="mono">Nome do produto</label>
+        <input type="text" id="p-name" required placeholder="Ex: Moletom canelado grafite" />
+
+        <label class="mono">Slug (usado na URL — gerado automaticamente, mas pode editar)</label>
+        <input type="text" id="p-slug" required placeholder="moletom-canelado-grafite" />
+
+        <label class="mono">Descrição</label>
+        <textarea id="p-description" rows="3" placeholder="Descrição livre do produto"></textarea>
+
+        <div class="grid-2">
+          <div>
+            <label class="mono">Preço (R$)</label>
+            <input type="number" id="p-price" step="0.01" min="0" required placeholder="99.90" />
+          </div>
+          <div>
+            <label class="mono">Preço "de" — opcional</label>
+            <input type="number" id="p-compare-price" step="0.01" min="0" placeholder="129.90" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label class="mono">Categoria</label>
+            <input type="text" id="p-category" placeholder="Ex: Vestuário" />
+          </div>
+          <div>
+            <label class="mono">Estoque</label>
+            <input type="number" id="p-stock" min="0" step="1" required placeholder="10" />
+          </div>
+        </div>
+
+        <label class="mono">URL da imagem</label>
+        <input type="url" id="p-image" placeholder="https://...supabase.co/storage/v1/object/public/product-images/foto.jpg" />
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="p-featured" />
+          <label class="mono" style="margin:0;">Produto em destaque</label>
+        </div>
+
+        <button type="submit" class="btn-primary" id="btn-save">Salvar produto</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:20px; margin-bottom:16px;">Produtos cadastrados</h2>
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Nome</th>
+            <th>Preço</th>
+            <th>Estoque</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="product-list">
+          <tr><td colspan="5" class="mono">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // ============================================================
+  // CONFIGURAÇÃO — troque pelos dados do SEU projeto Supabase
+  // ============================================================
+  const SUPABASE_URL = "https://atplpvpkzbrafrjqxvjm.supabase.co/rest/v1/";
+  const SUPABASE_ANON_KEY = "sb_publishable_6K1pXKYgWCjH9eToMb-qZw_5om1vRvJ";
+  // ============================================================
+
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const loginScreen = document.getElementById("login-screen");
+  const adminScreen = document.getElementById("admin-screen");
+  const btnLogout = document.getElementById("btn-logout");
+  const errorBox = document.getElementById("error-box");
+
+  function showError(el, message) {
+    el.textContent = message;
+    el.style.display = "block";
+    setTimeout(() => { el.style.display = "none"; }, 5000);
+  }
+
+  function slugify(text) {
+    return text
+      .toString()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-");
+  }
+
+  document.getElementById("p-name").addEventListener("input", (e) => {
+    document.getElementById("p-slug").value = slugify(e.target.value);
+  });
+
+  // --- Sessão / login ---
+  async function checkSession() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      loginScreen.style.display = "none";
+      adminScreen.style.display = "block";
+      btnLogout.style.display = "inline-block";
+      loadProducts();
+    } else {
+      loginScreen.style.display = "block";
+      adminScreen.style.display = "none";
+      btnLogout.style.display = "none";
+    }
+  }
+
+  document.getElementById("login-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("btn-login");
+    btn.disabled = true;
+    btn.textContent = "Entrando...";
+
+    const email = document.getElementById("login-email").value;
+    const password = document.getElementById("login-password").value;
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    btn.disabled = false;
+    btn.textContent = "Entrar";
+
+    if (error) {
+      showError(errorBox, "Não foi possível entrar: " + error.message);
+      return;
+    }
+    checkSession();
+  });
+
+  btnLogout.addEventListener("click", async () => {
+    await supabase.auth.signOut();
+    checkSession();
+  });
+
+  // --- Formulário de produto ---
+  const formError = document.getElementById("form-error");
+  const formSuccess = document.getElementById("form-success");
+
+  document.getElementById("product-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("btn-save");
+    btn.disabled = true;
+    btn.textContent = "Salvando...";
+    formError.style.display = "none";
+    formSuccess.style.display = "none";
+
+    const priceReais = parseFloat(document.getElementById("p-price").value || "0");
+    const comparePriceReais = document.getElementById("p-compare-price").value;
+
+    const payload = {
+      name: document.getElementById("p-name").value,
+      slug: document.getElementById("p-slug").value,
+      description: document.getElementById("p-description").value || null,
+      price_cents: Math.round(priceReais * 100),
+      compare_at_price_cents: comparePriceReais ? Math.round(parseFloat(comparePriceReais) * 100) : null,
+      category: document.getElementById("p-category").value || null,
+      stock: parseInt(document.getElementById("p-stock").value || "0", 10),
+      image_url: document.getElementById("p-image").value || null,
+      featured: document.getElementById("p-featured").checked,
+    };
+
+    const { error } = await supabase.from("products").insert(payload);
+
+    btn.disabled = false;
+    btn.textContent = "Salvar produto";
+
+    if (error) {
+      showError(formError, "Erro ao salvar: " + error.message);
+      return;
+    }
+
+    formSuccess.style.display = "block";
+    setTimeout(() => { formSuccess.style.display = "none"; }, 4000);
+    document.getElementById("product-form").reset();
+    loadProducts();
+  });
+
+  // --- Lista de produtos ---
+  async function loadProducts() {
+    const list = document.getElementById("product-list");
+    list.innerHTML = '<tr><td colspan="5" class="mono">Carregando...</td></tr>';
+
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      list.innerHTML = `<tr><td colspan="5" class="mono">Erro ao carregar: ${error.message}</td></tr>`;
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      list.innerHTML = '<tr><td colspan="5" class="mono">Nenhum produto cadastrado ainda.</td></tr>';
+      return;
+    }
+
+    list.innerHTML = "";
+    data.forEach((product) => {
+      const tr = document.createElement("tr");
+
+      const priceFormatted = (product.price_cents / 100).toLocaleString("pt-BR", {
+        style: "currency", currency: "BRL",
+      });
+
+      const stockBadge = product.stock > 0
+        ? `<span class="badge badge-ok">${product.stock} em estoque</span>`
+        : `<span class="badge badge-out">Esgotado</span>`;
+
+      tr.innerHTML = `
+        <td>${product.image_url ? `<img class="thumb" src="${product.image_url}" alt="">` : ""}</td>
+        <td><strong>${product.name}</strong><br/><span class="mono">${product.slug}</span></td>
+        <td class="mono">${priceFormatted}</td>
+        <td>${stockBadge}</td>
+        <td><button class="btn-danger" data-id="${product.id}">Apagar</button></td>
+      `;
+      list.appendChild(tr);
+    });
+
+    list.querySelectorAll(".btn-danger").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Tem certeza que quer apagar este produto?")) return;
+        const { error } = await supabase.from("products").delete().eq("id", btn.dataset.id);
+        if (error) {
+          alert("Erro ao apagar: " + error.message);
+          return;
+        }
+        loadProducts();
+      });
+    });
+  }
+
+  checkSession();
+</script>
+</body>
+</html>
