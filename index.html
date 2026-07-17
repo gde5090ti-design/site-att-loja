@@ -24,7 +24,7 @@
 
   body {
     margin: 0;
-    background: black;
+    background: var(--paper);
     color: var(--ink);
     font-family: "Inter", sans-serif;
   }
@@ -351,7 +351,7 @@
     throw new Error("window.supabase não carregou");
   }
 
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   function slugify(text) {
     return text
@@ -370,7 +370,7 @@
 
   // --- Sessão / login ---
   async function checkSession() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
       loginScreen.style.display = "none";
       adminScreen.style.display = "block";
@@ -392,7 +392,7 @@
     const email = document.getElementById("login-email").value;
     const password = document.getElementById("login-password").value;
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
     btn.disabled = false;
     btn.textContent = "Entrar";
@@ -405,7 +405,7 @@
   });
 
   btnLogout.addEventListener("click", async () => {
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
     checkSession();
   });
 
@@ -436,7 +436,7 @@
       featured: document.getElementById("p-featured").checked,
     };
 
-    const { error } = await supabase.from("products").insert(payload);
+    const { error } = await supabaseClient.from("products").insert(payload);
 
     btn.disabled = false;
     btn.textContent = "Salvar produto";
@@ -457,7 +457,7 @@
     const list = document.getElementById("product-list");
     list.innerHTML = '<tr><td colspan="5" class="mono">Carregando...</td></tr>';
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from("products")
       .select("*")
       .order("created_at", { ascending: false });
@@ -497,7 +497,7 @@
     list.querySelectorAll(".btn-danger").forEach((btn) => {
       btn.addEventListener("click", async () => {
         if (!confirm("Tem certeza que quer apagar este produto?")) return;
-        const { error } = await supabase.from("products").delete().eq("id", btn.dataset.id);
+        const { error } = await supabaseClient.from("products").delete().eq("id", btn.dataset.id);
         if (error) {
           alert("Erro ao apagar: " + error.message);
           return;
