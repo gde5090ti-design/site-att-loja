@@ -316,22 +316,42 @@
   // ============================================================
   // CONFIGURAÇÃO — troque pelos dados do SEU projeto Supabase
   // ============================================================
-  const SUPABASE_URL = "https://atplpvpkzbrafrjqxvjm.supabase.co/rest/v1/";
-  const SUPABASE_ANON_KEY = "sb_publishable_6K1pXKYgWCjH9eToMb-qZw_5om1vRvJ";
+  const SUPABASE_URL = "https://SEU-PROJETO.supabase.co";
+  const SUPABASE_ANON_KEY = "SUA-CHAVE-ANON-PUBLICA";
   // ============================================================
-
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const loginScreen = document.getElementById("login-screen");
   const adminScreen = document.getElementById("admin-screen");
   const btnLogout = document.getElementById("btn-logout");
   const errorBox = document.getElementById("error-box");
 
-  function showError(el, message) {
+  function showError(el, message, autoHide) {
     el.textContent = message;
     el.style.display = "block";
-    setTimeout(() => { el.style.display = "none"; }, 5000);
+    if (autoHide) setTimeout(() => { el.style.display = "none"; }, 5000);
   }
+
+  // Trava tudo com uma mensagem clara se o arquivo não foi configurado
+  // ou se o script do Supabase não carregou (ex: CDN bloqueada).
+  if (SUPABASE_URL.includes("SEU-PROJETO") || SUPABASE_ANON_KEY.includes("SUA-CHAVE")) {
+    showError(
+      errorBox,
+      "Este arquivo ainda não foi configurado. Abra o index.html num editor de texto e troque SUPABASE_URL e SUPABASE_ANON_KEY pelos valores do seu projeto (Project Settings > API no Supabase)."
+    );
+    document.getElementById("login-form").querySelectorAll("input,button").forEach((el) => el.disabled = true);
+    throw new Error("Configuração pendente: SUPABASE_URL / SUPABASE_ANON_KEY");
+  }
+
+  if (typeof window.supabase === "undefined") {
+    showError(
+      errorBox,
+      "Não foi possível carregar a biblioteca do Supabase (cdn.jsdelivr.net). Verifique sua internet, desative bloqueador de anúncios/antivírus para este arquivo, e recarregue a página."
+    );
+    document.getElementById("login-form").querySelectorAll("input,button").forEach((el) => el.disabled = true);
+    throw new Error("window.supabase não carregou");
+  }
+
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   function slugify(text) {
     return text
@@ -378,7 +398,7 @@
     btn.textContent = "Entrar";
 
     if (error) {
-      showError(errorBox, "Não foi possível entrar: " + error.message);
+      showError(errorBox, "Não foi possível entrar: " + error.message, true);
       return;
     }
     checkSession();
@@ -422,7 +442,7 @@
     btn.textContent = "Salvar produto";
 
     if (error) {
-      showError(formError, "Erro ao salvar: " + error.message);
+      showError(formError, "Erro ao salvar: " + error.message, true);
       return;
     }
 
