@@ -24,7 +24,7 @@
 
   body {
     margin: 0;
-    background: black;
+    background: var(--paper);
     color: var(--ink);
     font-family: "Inter", sans-serif;
   }
@@ -139,6 +139,80 @@
   /* --- Painel --- */
   #admin-screen { display: none; }
 
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab-btn {
+    background: transparent;
+    border: none;
+    padding: 10px 4px;
+    margin-right: 20px;
+    font-family: "IBM Plex Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 12px;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tab-btn.active { color: var(--ink); border-bottom-color: var(--signal); }
+
+  .tab-badge {
+    background: var(--signal);
+    color: white;
+    border-radius: 999px;
+    font-size: 10px;
+    padding: 1px 7px;
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .order-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+  }
+
+  .order-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .order-status-select {
+    width: auto;
+    margin-bottom: 0;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-family: "IBM Plex Mono", monospace;
+    text-transform: uppercase;
+  }
+
+  .order-items-list {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+    font-size: 13px;
+  }
+  .order-items-list div { display: flex; justify-content: space-between; padding: 2px 0; }
+
+  .status-pendente { color: #B45309; }
+  .status-confirmado { color: #1D4ED8; }
+  .status-enviado { color: #6D28D9; }
+  .status-concluido { color: var(--success); }
+  .status-cancelado { color: var(--danger); }
+
   .card {
     background: white;
     border-radius: 16px;
@@ -238,6 +312,15 @@
   <!-- PAINEL ADMIN -->
   <div id="admin-screen">
 
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="produtos">Produtos</button>
+      <button class="tab-btn" data-tab="pedidos">
+        Pedidos <span id="pending-badge" class="tab-badge" style="display:none;"></span>
+      </button>
+    </div>
+
+    <div id="tab-produtos" class="tab-panel active">
+
     <div class="card">
       <h2 style="font-size:20px; margin-bottom:4px;">Adicionar produto</h2>
       <p class="mono" style="margin-bottom:20px;">Preencha e clique em salvar. O produto aparece na loja na hora.</p>
@@ -312,6 +395,20 @@
           <tr><td colspan="5" class="mono">Carregando...</td></tr>
         </tbody>
       </table>
+    </div>
+
+    </div>
+
+    <div id="tab-pedidos" class="tab-panel">
+      <div class="card">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+          <h2 style="font-size:20px;">Pedidos</h2>
+          <button id="btn-refresh-orders" class="btn-secondary" style="padding:8px 14px; font-size:11px;">Atualizar</button>
+        </div>
+        <div id="orders-list">
+          <p class="mono">Carregando...</p>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -431,6 +528,7 @@
       adminScreen.style.display = "block";
       btnLogout.style.display = "inline-block";
       loadProducts();
+      loadOrders();
     } else {
       loginScreen.style.display = "block";
       adminScreen.style.display = "none";
@@ -563,6 +661,125 @@
       });
     });
   }
+
+  // --- Abas ---
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+      if (btn.dataset.tab === "pedidos") loadOrders();
+    });
+  });
+
+  // --- Pedidos ---
+  const STATUS_LABELS = {
+    pendente: "Pendente",
+    confirmado: "Confirmado",
+    enviado: "Enviado",
+    concluido: "Concluído",
+    cancelado: "Cancelado",
+  };
+
+  function formatCentsBRL(cents) {
+    return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  }
+
+  function formatDateTime(iso) {
+    return new Date(iso).toLocaleString("pt-BR", {
+      day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+    });
+  }
+
+  async function loadOrders() {
+    const ordersList = document.getElementById("orders-list");
+    ordersList.innerHTML = '<p class="mono">Carregando...</p>';
+
+    const { data, error } = await supabaseClient
+      .from("orders")
+      .select("*, order_items(*)")
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (error) {
+      ordersList.innerHTML = `<p class="mono">Erro ao carregar pedidos: ${error.message}</p>`;
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      ordersList.innerHTML = '<p class="mono">Nenhum pedido ainda.</p>';
+      document.getElementById("pending-badge").style.display = "none";
+      return;
+    }
+
+    const pendingCount = data.filter((o) => o.status === "pendente").length;
+    const badge = document.getElementById("pending-badge");
+    if (pendingCount > 0) {
+      badge.textContent = pendingCount;
+      badge.style.display = "inline-block";
+    } else {
+      badge.style.display = "none";
+    }
+
+    ordersList.innerHTML = "";
+    data.forEach((order) => {
+      const card = document.createElement("div");
+      card.className = "order-card";
+
+      const itemsHtml = (order.order_items || [])
+        .map((item) => `<div><span>${item.quantity}× ${item.product_name}</span><span>${formatCentsBRL(item.unit_price_cents * item.quantity)}</span></div>`)
+        .join("");
+
+      const statusOptions = Object.keys(STATUS_LABELS)
+        .map((key) => `<option value="${key}" ${order.status === key ? "selected" : ""}>${STATUS_LABELS[key]}</option>`)
+        .join("");
+
+      card.innerHTML = `
+        <div class="order-card-top">
+          <div>
+            <strong>${order.customer_name}</strong>
+            <span class="mono status-${order.status}"> · ${STATUS_LABELS[order.status] || order.status}</span>
+            <div class="mono" style="margin-top:4px;">${formatDateTime(order.created_at)}</div>
+          </div>
+          <select class="order-status-select" data-id="${order.id}">
+            ${statusOptions}
+          </select>
+        </div>
+        <div class="mono" style="margin-top:10px; line-height:1.6;">
+          📞 ${order.customer_phone || "—"}<br/>
+          ✉️ ${order.customer_email}<br/>
+          📍 ${order.shipping_address}
+        </div>
+        <div class="order-items-list">
+          ${itemsHtml}
+          <div style="font-weight:bold; border-top:1px solid var(--border); margin-top:6px; padding-top:6px;">
+            <span>Total</span><span>${formatCentsBRL(order.total_cents)}</span>
+          </div>
+        </div>
+      `;
+
+      ordersList.appendChild(card);
+    });
+
+    ordersList.querySelectorAll(".order-status-select").forEach((select) => {
+      select.addEventListener("change", async () => {
+        select.disabled = true;
+        const { error: updateError } = await supabaseClient
+          .from("orders")
+          .update({ status: select.value })
+          .eq("id", select.dataset.id);
+        select.disabled = false;
+        if (updateError) {
+          alert("Erro ao atualizar status: " + updateError.message);
+          return;
+        }
+        loadOrders();
+      });
+    });
+  }
+
+  document.getElementById("btn-refresh-orders").addEventListener("click", loadOrders);
 
   checkSession();
 </script>
